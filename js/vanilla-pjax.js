@@ -1,7 +1,7 @@
 'use strict';
 /*
  * Plugin Name: Vanilla Pushstate/AJAX
- * Version: 0.7
+ * Version: 0.7.1
  * Plugin URL: https://github.com/Darklg/JavaScriptUtilities
  * JavaScriptUtilities PJAX may be freely distributed under the MIT license.
  * Required: Vanilla AJAX or jQuery,
@@ -74,10 +74,17 @@ var vanillaPJAX = function(settings) {
         if (!link.href || link.href.slice(-1) == '#' || link.getAttribute('target') == '_blank') {
             return false;
         }
-        // Get details
-        var urlExtension = link.pathname.split('.').pop().toLowerCase();
         // Static asset
-        if (self.contains(['jpg', 'png', 'gif', 'css', 'js'], urlExtension)) {
+        var urlExtension = link.pathname.split('.').pop().toLowerCase();
+        if (self.contains(['jpeg', 'svg', 'jpg', 'png', 'gif', 'css', 'js'], urlExtension)) {
+            return false;
+        }
+        // Downloadable link
+        if(link.getAttribute('download')){
+            return false;
+        }
+        // Disable PJAX
+        if(link.getAttribute('data-ajax') === '0'){
             return false;
         }
         // Not on same domain
