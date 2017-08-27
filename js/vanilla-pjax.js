@@ -1,7 +1,7 @@
 'use strict';
 /*
  * Plugin Name: Vanilla Pushstate/AJAX
- * Version: 0.7.1
+ * Version: 0.8.0
  * Plugin URL: https://github.com/Darklg/JavaScriptUtilities
  * JavaScriptUtilities PJAX may be freely distributed under the MIT license.
  * Required: Vanilla AJAX or jQuery,
@@ -14,11 +14,13 @@
 var vanillaPJAX = function(settings) {
     var self = this,
         hasPushState = ('pushState' in history);
+
     self.isLoading = false;
     self.currentLocation = document.location;
     self.defaultSettings = {
         targetContainer: document.body,
         ajaxParam: 'ajax',
+        timeoutBeforeAJAX: 0,
         callbackBeforeAJAX: function(newUrl, item) {},
         callbackAfterAJAX: function(newUrl, content) {},
         callbackAfterLoad: function(newUrl) {},
@@ -26,6 +28,7 @@ var vanillaPJAX = function(settings) {
             return content;
         }
     };
+
     self.init = function(settings) {
         self.getSettings(settings);
         // Kill if target container isn't defined
@@ -37,6 +40,7 @@ var vanillaPJAX = function(settings) {
         // Set Events
         self.setEvents();
     };
+
     self.setARIA = function() {
         var el = self.settings.targetContainer;
         // User has requested a page change.
@@ -44,6 +48,7 @@ var vanillaPJAX = function(settings) {
         // All the content has changed ( new page content )
         el.setAttribute('aria-atomic', 'true');
     };
+
     self.setEvents = function() {
         // Click event on all A elements
         self.setClickables(document);
@@ -58,6 +63,7 @@ var vanillaPJAX = function(settings) {
             self.addEvent(window, 'hashchange', self.gotoHashBang);
         }
     };
+
     self.setClickables = function(parent) {
         var links = parent.getElementsByTagName('A');
         for (var link in links) {
@@ -68,6 +74,7 @@ var vanillaPJAX = function(settings) {
             }
         }
     };
+
     self.checkClickable = function(link) {
 
         // Invalid or external link
@@ -80,11 +87,11 @@ var vanillaPJAX = function(settings) {
             return false;
         }
         // Downloadable link
-        if(link.getAttribute('download')){
+        if (link.getAttribute('download')) {
             return false;
         }
         // Disable PJAX
-        if(link.getAttribute('data-ajax') === '0'){
+        if (link.getAttribute('data-ajax') === '0') {
             return false;
         }
         // Not on same domain
@@ -93,12 +100,14 @@ var vanillaPJAX = function(settings) {
         }
         return true;
     };
+
     self.gotoHashBang = function() {
         var link = document.location.hash;
         if (link.slice(0, 2) == '#!') {
             self.goToUrl(link.slice(2));
         }
     };
+
     self.clickAction = function(e) {
         if (e.metaKey || e.ctrlKey ||  e.altKey || e.shiftKey) {
             return;
@@ -106,6 +115,7 @@ var vanillaPJAX = function(settings) {
         self.eventPreventDefault(e);
         self.goToUrl(this.href, this);
     };
+
     // Load an URL
     self.goToUrl = function(url, item) {
         item = item ||  false;
@@ -123,22 +133,26 @@ var vanillaPJAX = function(settings) {
             self.loadContent(content, url);
             settings.callbackAfterLoad(url);
         };
-
-        if (window.jQuery) {
-            jQuery.ajax({
-                url: url,
-                success: callbackFun,
-                data: data
-            });
-        }
-        else {
-            new jsuAJAX({
-                url: url,
-                callback: callbackFun,
-                data: data
-            });
-        }
+        (function(url, callbackFun, data) {
+            setTimeout(function() {
+                if (window.jQuery) {
+                    jQuery.ajax({
+                        url: url,
+                        success: callbackFun,
+                        data: data
+                    });
+                }
+                else {
+                    new jsuAJAX({
+                        url: url,
+                        callback: callbackFun,
+                        data: data
+                    });
+                }
+            }, self.settings.timeoutBeforeAJAX);
+        }(url, callbackFun, data));
     };
+
     // Change URL
     self.setUrl = function(url) {
         var urlDetails = document.createElement('a');
@@ -154,6 +168,7 @@ var vanillaPJAX = function(settings) {
             document.location.hash = '!' + urlDetails.pathname;
         }
     };
+
     // Handle the loaded content
     self.loadContent = function(content, url) {
         var settings = self.settings,
@@ -171,6 +186,7 @@ var vanillaPJAX = function(settings) {
         // Allow a new page load
         document.body.setAttribute('data-loading', '');
     };
+
     self.init(settings);
     return self;
 };
