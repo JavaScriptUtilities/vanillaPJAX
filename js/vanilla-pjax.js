@@ -1,16 +1,19 @@
 'use strict';
+
 /*
  * Plugin Name: Vanilla Pushstate/AJAX
- * Version: 0.8.0
+ * Version: 0.9.0
  * Plugin URL: https://github.com/Darklg/JavaScriptUtilities
  * JavaScriptUtilities PJAX may be freely distributed under the MIT license.
  * Required: Vanilla AJAX or jQuery,
  * Usage status: Work in progress
  */
+
 /*
  * Todo :
  * - Parse content to extract only area
  */
+
 var vanillaPJAX = function(settings) {
     var self = this,
         hasPushState = ('pushState' in history);
@@ -18,9 +21,11 @@ var vanillaPJAX = function(settings) {
     self.isLoading = false;
     self.currentLocation = document.location;
     self.defaultSettings = {
-        targetContainer: document.body,
         ajaxParam: 'ajax',
+        invalidUrls: [/wp-admin/],
+        targetContainer: document.body,
         timeoutBeforeAJAX: 0,
+        urlExtensions: ['jpeg', 'svg', 'jpg', 'png', 'gif', 'css', 'js'],
         callbackBeforeAJAX: function(newUrl, item) {},
         callbackAfterAJAX: function(newUrl, content) {},
         callbackAfterLoad: function(newUrl) {},
@@ -83,8 +88,14 @@ var vanillaPJAX = function(settings) {
         }
         // Static asset
         var urlExtension = link.pathname.split('.').pop().toLowerCase();
-        if (self.contains(['jpeg', 'svg', 'jpg', 'png', 'gif', 'css', 'js'], urlExtension)) {
+        if (self.contains(self.settings.urlExtensions, urlExtension)) {
             return false;
+        }
+        // URL Format
+        for (var i = 0, len = self.settings.invalidUrls.length; i < len; i++) {
+            if (!!link.href.match(self.settings.invalidUrls[i])) {
+                return false;
+            }
         }
         // Downloadable link
         if (link.getAttribute('download')) {
@@ -123,11 +134,11 @@ var vanillaPJAX = function(settings) {
         if (url == self.currentLocation || document.body.getAttribute('data-loading') == 'loading') {
             return;
         }
-        settings.callbackBeforeAJAX(url, item);
+        self.settings.callbackBeforeAJAX(url, item);
         document.body.setAttribute('data-loading', 'loading');
 
         var data = {};
-        data[settings.ajaxParam] = 1;
+        data[self.settings.ajaxParam] = 1;
         var callbackFun = function(content) {
             settings.callbackAfterAJAX(url, content);
             self.loadContent(content, url);
