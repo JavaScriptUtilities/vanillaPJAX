@@ -2,7 +2,7 @@
 
 /*
  * Plugin Name: Vanilla Pushstate/AJAX
- * Version: 0.9.0
+ * Version: 0.10.0
  * Plugin URL: https://github.com/Darklg/JavaScriptUtilities
  * JavaScriptUtilities PJAX may be freely distributed under the MIT license.
  * Required: Vanilla AJAX or jQuery,
@@ -81,14 +81,13 @@ var vanillaPJAX = function(settings) {
     };
 
     self.checkClickable = function(link) {
-
         // Invalid or external link
         if (!link.href || link.href.slice(-1) == '#' || link.getAttribute('target') == '_blank') {
             return false;
         }
         // Static asset
         var urlExtension = link.pathname.split('.').pop().toLowerCase();
-        if (self.contains(self.settings.urlExtensions, urlExtension)) {
+        if (self.inArray(self.settings.urlExtensions, urlExtension)) {
             return false;
         }
         // URL Format
@@ -99,6 +98,12 @@ var vanillaPJAX = function(settings) {
         }
         // Downloadable link
         if (link.getAttribute('download')) {
+            return false;
+        }
+        // Language link
+        var linkLang = link.getAttribute('hreflang'),
+            docLang = document.documentElement.lang;
+        if (linkLang && !self.contains(linkLang,docLang) && !self.contains(docLang,linkLang)) {
             return false;
         }
         // Disable PJAX
@@ -227,8 +232,8 @@ vanillaPJAX.prototype.getSettings = function(settings) {
     }
 };
 
-/* Contains */
-vanillaPJAX.prototype.contains = function(needle, haystack) {
+/* inArray */
+vanillaPJAX.prototype.inArray = function(needle, haystack) {
     var i = 0,
         length = haystack.length;
 
@@ -236,6 +241,11 @@ vanillaPJAX.prototype.contains = function(needle, haystack) {
         if (haystack[i] === needle) return true;
     }
     return false;
+};
+
+/* Contains */
+vanillaPJAX.prototype.contains = function(needle, haystack) {
+    return haystack.indexOf(needle) != -1;
 };
 
 vanillaPJAX.prototype.eventPreventDefault = function(event) {
