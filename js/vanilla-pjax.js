@@ -2,7 +2,7 @@
 
 /*
  * Plugin Name: Vanilla Pushstate/AJAX
- * Version: 0.10.0
+ * Version: 0.11.0
  * Plugin URL: https://github.com/Darklg/JavaScriptUtilities
  * JavaScriptUtilities PJAX may be freely distributed under the MIT license.
  * Required: Vanilla AJAX or jQuery,
@@ -24,14 +24,18 @@ var vanillaPJAX = function(settings) {
         ajaxParam: 'ajax',
         invalidUrls: [/wp-admin/],
         targetContainer: document.body,
+        parentContainer: document,
         timeoutBeforeAJAX: 0,
         urlExtensions: ['jpeg', 'svg', 'jpg', 'png', 'gif', 'css', 'js'],
         callbackBeforeAJAX: function(newUrl, item) {},
         callbackAfterAJAX: function(newUrl, content) {},
-        callbackAfterLoad: function(newUrl) {},
+        callbackAfterLoad: function(newUrl, content) {},
         filterContent: function(content) {
             return content;
-        }
+        },
+        isClickable: function(item) {
+            return true;
+        },
     };
 
     self.init = function(settings) {
@@ -56,7 +60,7 @@ var vanillaPJAX = function(settings) {
 
     self.setEvents = function() {
         // Click event on all A elements
-        self.setClickables(document);
+        self.setClickables(self.settings.parentContainer);
         // Handle history back
         self.addEvent(window, 'popstate', function() {
             self.goToUrl(document.location.href);
@@ -103,11 +107,15 @@ var vanillaPJAX = function(settings) {
         // Language link
         var linkLang = link.getAttribute('hreflang'),
             docLang = document.documentElement.lang;
-        if (linkLang && !self.contains(linkLang,docLang) && !self.contains(docLang,linkLang)) {
+        if (linkLang && !self.contains(linkLang, docLang) && !self.contains(docLang, linkLang)) {
             return false;
         }
         // Disable PJAX
         if (link.getAttribute('data-ajax') === '0') {
+            return false;
+        }
+        // Custom check
+        if (!self.settings.isClickable(link)) {
             return false;
         }
         // Not on same domain
@@ -147,7 +155,7 @@ var vanillaPJAX = function(settings) {
         var callbackFun = function(content) {
             settings.callbackAfterAJAX(url, content);
             self.loadContent(content, url);
-            settings.callbackAfterLoad(url);
+            settings.callbackAfterLoad(url, content);
         };
         (function(url, callbackFun, data) {
             setTimeout(function() {
