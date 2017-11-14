@@ -2,7 +2,7 @@
 
 /*
  * Plugin Name: Vanilla Pushstate/AJAX
- * Version: 0.11.0
+ * Version: 0.12.0
  * Plugin URL: https://github.com/Darklg/JavaScriptUtilities
  * JavaScriptUtilities PJAX may be freely distributed under the MIT license.
  * Required: Vanilla AJAX or jQuery,
@@ -29,6 +29,10 @@ var vanillaPJAX = function(settings) {
         urlExtensions: ['jpeg', 'svg', 'jpg', 'png', 'gif', 'css', 'js'],
         callbackBeforeAJAX: function(newUrl, item) {},
         callbackAfterAJAX: function(newUrl, content) {},
+        callbackAllowLoading: function(newUrl, content) {
+            // Allow a new page load
+            document.body.setAttribute('data-loading', '');
+        },
         callbackAfterLoad: function(newUrl, content) {},
         filterContent: function(content) {
             return content;
@@ -154,7 +158,8 @@ var vanillaPJAX = function(settings) {
         data[self.settings.ajaxParam] = 1;
         var callbackFun = function(content) {
             settings.callbackAfterAJAX(url, content);
-            self.loadContent(content, url);
+            self.loadContent(url, content);
+            settings.callbackAllowLoading(url, content);
             settings.callbackAfterLoad(url, content);
         };
         (function(url, callbackFun, data) {
@@ -194,10 +199,9 @@ var vanillaPJAX = function(settings) {
     };
 
     // Handle the loaded content
-    self.loadContent = function(content, url) {
+    self.loadContent = function(url, content) {
         var settings = self.settings,
             target = settings.targetContainer;
-
         content = settings.filterContent(content);
         // Update values
         self.currentLocation = url;
@@ -207,8 +211,6 @@ var vanillaPJAX = function(settings) {
         target.innerHTML = content;
         // Add events to new links
         self.setClickables(target);
-        // Allow a new page load
-        document.body.setAttribute('data-loading', '');
     };
 
     self.init(settings);
