@@ -1,20 +1,19 @@
-'use strict';
-
 /*
  * Plugin Name: Vanilla Pushstate/AJAX
- * Version: 0.12.0
+ * Version: 0.13.0
  * Plugin URL: https://github.com/Darklg/JavaScriptUtilities
  * JavaScriptUtilities PJAX may be freely distributed under the MIT license.
  * Required: Vanilla AJAX or jQuery,
  * Usage status: Work in progress
  */
-
+/* jshint browser: true */
 /*
  * Todo :
  * - Parse content to extract only area
  */
 
 var vanillaPJAX = function(settings) {
+    'use strict';
     var self = this,
         hasPushState = ('pushState' in history);
 
@@ -25,6 +24,7 @@ var vanillaPJAX = function(settings) {
         invalidUrls: [/wp-admin/],
         targetContainer: document.body,
         parentContainer: document,
+        timeoutBeforeLoading: 0,
         timeoutBeforeAJAX: 0,
         urlExtensions: ['jpeg', 'svg', 'jpg', 'png', 'gif', 'css', 'js'],
         callbackBeforeAJAX: function(newUrl, item) {},
@@ -159,8 +159,12 @@ var vanillaPJAX = function(settings) {
         var callbackFun = function(content) {
             settings.callbackAfterAJAX(url, content);
             self.loadContent(url, content);
-            settings.callbackAllowLoading(url, content);
-            settings.callbackAfterLoad(url, content);
+            (function(settings, url, content) {
+                setTimeout(function() {
+                    settings.callbackAllowLoading(url, content);
+                    settings.callbackAfterLoad(url, content);
+                }, self.settings.timeoutBeforeLoading);
+            }(settings, url, content));
         };
         (function(url, callbackFun, data) {
             setTimeout(function() {
