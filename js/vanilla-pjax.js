@@ -1,6 +1,6 @@
 /*
  * Plugin Name: Vanilla Pushstate/AJAX
- * Version: 0.13.0
+ * Version: 0.14.0
  * Plugin URL: https://github.com/Darklg/JavaScriptUtilities
  * JavaScriptUtilities PJAX may be freely distributed under the MIT license.
  * Required: Vanilla AJAX or jQuery,
@@ -24,6 +24,8 @@ var vanillaPJAX = function(settings) {
         invalidUrls: [/wp-admin/],
         targetContainer: document.body,
         parentContainer: document,
+        useLocalStorage: 0,
+        useSessionStorage: 0,
         timeoutBeforeLoading: 0,
         timeoutBeforeAJAX: 0,
         urlExtensions: ['jpeg', 'svg', 'jpg', 'png', 'gif', 'css', 'js'],
@@ -157,6 +159,12 @@ var vanillaPJAX = function(settings) {
         var data = {};
         data[self.settings.ajaxParam] = 1;
         var callbackFun = function(content) {
+            if (self.settings.useLocalStorage) {
+                localStorage.setItem(url, content);
+            }
+            if (self.settings.useSessionStorage) {
+                sessionStorage.setItem(url, content);
+            }
             settings.callbackAfterAJAX(url, content);
             self.loadContent(url, content);
             (function(settings, url, content) {
@@ -168,6 +176,14 @@ var vanillaPJAX = function(settings) {
         };
         (function(url, callbackFun, data) {
             setTimeout(function() {
+                if (self.settings.useLocalStorage && localStorage.getItem(url)) {
+                    callbackFun(localStorage.getItem(url));
+                    return;
+                }
+                if (self.settings.useSessionStorage && sessionStorage.getItem(url)) {
+                    callbackFun(sessionStorage.getItem(url));
+                    return;
+                }
                 if (window.jQuery) {
                     jQuery.ajax({
                         url: url,
