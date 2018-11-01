@@ -1,6 +1,6 @@
 /*
  * Plugin Name: Vanilla Pushstate/AJAX
- * Version: 0.14.2
+ * Version: 0.15.0
  * Plugin URL: https://github.com/Darklg/JavaScriptUtilities
  * JavaScriptUtilities PJAX may be freely distributed under the MIT license.
  * Required: Vanilla AJAX or jQuery,
@@ -31,6 +31,9 @@ var vanillaPJAX = function(settings) {
         urlExtensions: ['jpeg', 'svg', 'jpg', 'png', 'gif', 'css', 'js'],
         callbackBeforeAJAX: function(newUrl, item) {},
         callbackAfterAJAX: function(newUrl, content) {},
+        callbackTimeoutBeforeLoad: function(duration, newUrl, content) {
+            return duration;
+        },
         callbackAllowLoading: function(newUrl, content) {
             // Allow a new page load
             document.body.setAttribute('data-loading', '');
@@ -168,11 +171,12 @@ var vanillaPJAX = function(settings) {
             settings.callbackAfterAJAX(url, content);
             self.loadContent(url, content);
             (function(settings, url, content) {
+                var _timeoutDuration = settings.callbackTimeoutBeforeLoad(settings.timeoutBeforeLoading, url, content);
                 setTimeout(function() {
                     settings.callbackAllowLoading(url, content);
                     settings.callbackAfterLoad(url, content);
                     window.dispatchEvent(new Event('vanilla-pjax-ready'));
-                }, self.settings.timeoutBeforeLoading);
+                }, _timeoutDuration);
             }(settings, url, content));
         };
         (function(url, callbackFun, data) {
