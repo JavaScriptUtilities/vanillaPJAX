@@ -1,6 +1,6 @@
 /*
  * Plugin Name: Vanilla Pushstate/AJAX
- * Version: 0.15.0
+ * Version: 0.16.0
  * Plugin URL: https://github.com/Darklg/JavaScriptUtilities
  * JavaScriptUtilities PJAX may be freely distributed under the MIT license.
  * Required: Vanilla AJAX or jQuery,
@@ -26,11 +26,18 @@ var vanillaPJAX = function(settings) {
         parentContainer: document,
         useLocalStorage: 0,
         useSessionStorage: 0,
+        timeoutBeforeLoadContent: 0,
         timeoutBeforeLoading: 0,
         timeoutBeforeAJAX: 0,
         urlExtensions: ['jpeg', 'svg', 'jpg', 'png', 'gif', 'css', 'js'],
         callbackBeforeAJAX: function(newUrl, item) {},
         callbackAfterAJAX: function(newUrl, content) {},
+        callbackTimeoutBeforeAJAX: function(duration, newUrl, data) {
+            return duration;
+        },
+        callbackTimeoutBeforeLoadContent: function(duration, newUrl, content) {
+            return duration;
+        },
         callbackTimeoutBeforeLoad: function(duration, newUrl, content) {
             return duration;
         },
@@ -169,17 +176,27 @@ var vanillaPJAX = function(settings) {
                 sessionStorage.setItem(url, content);
             }
             settings.callbackAfterAJAX(url, content);
-            self.loadContent(url, content);
-            (function(settings, url, content) {
-                var _timeoutDuration = settings.callbackTimeoutBeforeLoad(settings.timeoutBeforeLoading, url, content);
-                setTimeout(function() {
-                    settings.callbackAllowLoading(url, content);
-                    settings.callbackAfterLoad(url, content);
-                    window.dispatchEvent(new Event('vanilla-pjax-ready'));
-                }, _timeoutDuration);
-            }(settings, url, content));
+
+            (function(settings,url,content){
+                /* Load */
+                var _timeoutDuration = settings.callbackTimeoutBeforeLoadContent(settings.timeoutBeforeLoadContent, url, content);
+                setTimeout(function(){
+                    self.loadContent(url, content);
+                    /* After load */
+                    var _timeoutDuration = settings.callbackTimeoutBeforeLoad(settings.timeoutBeforeLoading, url, content);
+                    setTimeout(function() {
+                        settings.callbackAllowLoading(url, content);
+                        settings.callbackAfterLoad(url, content);
+                        window.dispatchEvent(new Event('vanilla-pjax-ready'));
+                    }, _timeoutDuration);
+                    /* - After load */
+                },_timeoutDuration);
+                /* - Load */
+            }(settings,url,content));
+
         };
         (function(url, callbackFun, data) {
+            var _timeoutDuration = settings.callbackTimeoutBeforeAJAX(settings.timeoutBeforeAJAX, url, data);
             setTimeout(function() {
                 if (self.settings.useLocalStorage && localStorage.getItem(url)) {
                     callbackFun(localStorage.getItem(url));
@@ -203,7 +220,7 @@ var vanillaPJAX = function(settings) {
                         data: data
                     });
                 }
-            }, self.settings.timeoutBeforeAJAX);
+            }, _timeoutDuration);
         }(url, callbackFun, data));
     };
 
