@@ -1,6 +1,6 @@
 /*
  * Plugin Name: Vanilla Pushstate/AJAX
- * Version: 0.16.0
+ * Version: 0.16.1
  * Plugin URL: https://github.com/Darklg/JavaScriptUtilities
  * JavaScriptUtilities PJAX may be freely distributed under the MIT license.
  * Required: Vanilla AJAX or jQuery,
@@ -177,22 +177,22 @@ var vanillaPJAX = function(settings) {
             }
             settings.callbackAfterAJAX(url, content);
 
-            (function(settings,url,content){
+            (function(settings, url, content) {
                 /* Load */
                 var _timeoutDuration = settings.callbackTimeoutBeforeLoadContent(settings.timeoutBeforeLoadContent, url, content);
-                setTimeout(function(){
+                setTimeout(function() {
                     self.loadContent(url, content);
                     /* After load */
                     var _timeoutDuration = settings.callbackTimeoutBeforeLoad(settings.timeoutBeforeLoading, url, content);
                     setTimeout(function() {
                         settings.callbackAllowLoading(url, content);
                         settings.callbackAfterLoad(url, content);
-                        window.dispatchEvent(new Event('vanilla-pjax-ready'));
+                        self.triggerEvent('vanilla-pjax-ready');
                     }, _timeoutDuration);
                     /* - After load */
-                },_timeoutDuration);
+                }, _timeoutDuration);
                 /* - Load */
-            }(settings,url,content));
+            }(settings, url, content));
 
         };
         (function(url, callbackFun, data) {
@@ -222,6 +222,18 @@ var vanillaPJAX = function(settings) {
                 }
             }, _timeoutDuration);
         }(url, callbackFun, data));
+    };
+
+    self.triggerEvent = function(eventId) {
+        var event;
+        if (typeof(Event) === 'function') {
+            event = new Event(eventId);
+        }
+        else {
+            event = document.createEvent('Event');
+            event.initEvent(eventId, true, true);
+        }
+        window.dispatchEvent(event);
     };
 
     // Change URL
