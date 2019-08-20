@@ -1,6 +1,6 @@
 /*
  * Plugin Name: Vanilla Pushstate/AJAX
- * Version: 0.16.1
+ * Version: 0.17.0
  * Plugin URL: https://github.com/Darklg/JavaScriptUtilities
  * JavaScriptUtilities PJAX may be freely distributed under the MIT license.
  * Required: Vanilla AJAX or jQuery,
@@ -14,8 +14,11 @@
 
 var vanillaPJAX = function(settings) {
     'use strict';
-    var self = this,
-        hasPushState = ('pushState' in history);
+    var self = this;
+
+    if (!('pushState' in history)) {
+        return false;
+    }
 
     self.isLoading = false;
     self.currentLocation = document.location;
@@ -78,15 +81,9 @@ var vanillaPJAX = function(settings) {
         // Click event on all A elements
         self.setClickables(self.settings.parentContainer);
         // Handle history back
-        self.addEvent(window, 'popstate', function() {
+        window.addEventListener('popstate', function() {
             self.goToUrl(document.location.href);
-        });
-        if (!hasPushState) {
-            // Load initial page
-            window.domReady(self.gotoHashBang);
-            // Check for hash change
-            self.addEvent(window, 'hashchange', self.gotoHashBang);
-        }
+        }, 1);
     };
 
     self.setClickables = function(parent) {
@@ -95,7 +92,10 @@ var vanillaPJAX = function(settings) {
             // Intercept click event on each new link
             if (typeof links[link] == 'object' && links[link].getAttribute('data-ajax') !== '1' && self.checkClickable(links[link])) {
                 links[link].setAttribute('data-ajax', '1');
-                self.addEvent(links[link], 'click', self.clickAction);
+                links[link].addEventListener('click', self.clickAction, 1);
+                if (self.settings.useSessionStorage || self.settings.useLocalStorage) {
+                    links[link].addEventListener('mouseover', self.hoverAction, 1);
+                }
             }
         }
     };
@@ -152,30 +152,35 @@ var vanillaPJAX = function(settings) {
         if (e.metaKey || e.ctrlKey ||  e.altKey || e.shiftKey) {
             return;
         }
-        self.eventPreventDefault(e);
+        e.preventDefault();
         self.goToUrl(this.href, this);
+    };
+
+    self.hoverAction = function(e) {
+        var url = this.href;
+        if (self.settings.useLocalStorage && localStorage.getItem(url)) {
+            return;
+        }
+        if (self.settings.useSessionStorage && sessionStorage.getItem(url)) {
+            return;
+        }
+        self.callUrl(url, function(content) {
+            self.cacheUrlContent(url, content);
+        });
     };
 
     // Load an URL
     self.goToUrl = function(url, item) {
         item = item ||  false;
-        var settings = self.settings;
         if (url == self.currentLocation || document.body.getAttribute('data-loading') == 'loading') {
             return;
         }
         self.settings.callbackBeforeAJAX(url, item);
         document.body.setAttribute('data-loading', 'loading');
 
-        var data = {};
-        data[self.settings.ajaxParam] = 1;
         var callbackFun = function(content) {
-            if (self.settings.useLocalStorage) {
-                localStorage.setItem(url, content);
-            }
-            if (self.settings.useSessionStorage) {
-                sessionStorage.setItem(url, content);
-            }
-            settings.callbackAfterAJAX(url, content);
+            self.cacheUrlContent(url, content);
+            self.settings.callbackAfterAJAX(url, content);
 
             (function(settings, url, content) {
                 /* Load */
@@ -192,36 +197,49 @@ var vanillaPJAX = function(settings) {
                     /* - After load */
                 }, _timeoutDuration);
                 /* - Load */
-            }(settings, url, content));
+            }(self.settings, url, content));
 
         };
-        (function(url, callbackFun, data) {
-            var _timeoutDuration = settings.callbackTimeoutBeforeAJAX(settings.timeoutBeforeAJAX, url, data);
-            setTimeout(function() {
-                if (self.settings.useLocalStorage && localStorage.getItem(url)) {
-                    callbackFun(localStorage.getItem(url));
-                    return;
-                }
-                if (self.settings.useSessionStorage && sessionStorage.getItem(url)) {
-                    callbackFun(sessionStorage.getItem(url));
-                    return;
-                }
-                if (window.jQuery) {
-                    jQuery.ajax({
-                        url: url,
-                        success: callbackFun,
-                        data: data
-                    });
-                }
-                else {
-                    new jsuAJAX({
-                        url: url,
-                        callback: callbackFun,
-                        data: data
-                    });
-                }
-            }, _timeoutDuration);
-        }(url, callbackFun, data));
+        self.callUrl(url, callbackFun);
+    };
+
+    self.callUrl = function(url, callbackFun) {
+        var data = {};
+        data[self.settings.ajaxParam] = 1;
+        var _timeoutDuration = self.settings.callbackTimeoutBeforeAJAX(self.settings.timeoutBeforeAJAX, url, data);
+        setTimeout(function() {
+            if (self.settings.useLocalStorage && localStorage.getItem(url)) {
+                callbackFun(localStorage.getItem(url));
+                return;
+            }
+            if (self.settings.useSessionStorage && sessionStorage.getItem(url)) {
+                callbackFun(sessionStorage.getItem(url));
+                return;
+            }
+            if (window.jQuery) {
+                jQuery.ajax({
+                    url: url,
+                    success: callbackFun,
+                    data: data
+                });
+            }
+            else {
+                new jsuAJAX({
+                    url: url,
+                    callback: callbackFun,
+                    data: data
+                });
+            }
+        }, _timeoutDuration);
+    };
+
+    self.cacheUrlContent = function(url, content) {
+        if (self.settings.useLocalStorage) {
+            localStorage.setItem(url, content);
+        }
+        if (self.settings.useSessionStorage) {
+            sessionStorage.setItem(url, content);
+        }
     };
 
     self.triggerEvent = function(eventId) {
@@ -244,12 +262,7 @@ var vanillaPJAX = function(settings) {
             return;
         }
         // Change URL
-        if (hasPushState) {
-            history.pushState({}, document.title, url);
-        }
-        else {
-            document.location.hash = '!' + urlDetails.pathname;
-        }
+        history.pushState({}, document.title, url);
     };
 
     // Handle the loaded content
@@ -269,18 +282,6 @@ var vanillaPJAX = function(settings) {
 
     self.init(settings);
     return self;
-};
-
-/* Add event */
-vanillaPJAX.prototype.addEvent = function(el, eventName, callback) {
-    if (el.addEventListener) {
-        el.addEventListener(eventName, callback, false);
-    }
-    else if (el.attachEvent) {
-        el.attachEvent('on' + eventName, function(e) {
-            return callback.call(el, e);
-        });
-    }
 };
 
 /* Get Settings */
@@ -310,8 +311,4 @@ vanillaPJAX.prototype.inArray = function(needle, haystack) {
 /* Contains */
 vanillaPJAX.prototype.contains = function(needle, haystack) {
     return haystack.indexOf(needle) != -1;
-};
-
-vanillaPJAX.prototype.eventPreventDefault = function(event) {
-    return (event.preventDefault) ? event.preventDefault() : event.returnValue = false;
 };

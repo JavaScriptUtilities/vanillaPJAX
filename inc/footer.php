@@ -12,5 +12,8 @@ if (isset($_GET['is_ajax'])) {
     Watch the URL !
 </small>
 </p>
+<p>
+    <a href="https://github.com/JavaScriptUtilities/vanillaPJAX" target="_blank">This external link</a> is ignored.
+</p>
 </body>
 </html>
