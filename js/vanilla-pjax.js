@@ -1,6 +1,6 @@
 /*
  * Plugin Name: Vanilla Pushstate/AJAX
- * Version: 0.17.0
+ * Version: 0.18.0
  * Plugin URL: https://github.com/Darklg/JavaScriptUtilities
  * JavaScriptUtilities PJAX may be freely distributed under the MIT license.
  * Required: Vanilla AJAX or jQuery,
@@ -216,21 +216,23 @@ var vanillaPJAX = function(settings) {
                 callbackFun(sessionStorage.getItem(url));
                 return;
             }
-            if (window.jQuery) {
-                jQuery.ajax({
-                    url: url,
-                    success: callbackFun,
-                    data: data
-                });
-            }
-            else {
-                new jsuAJAX({
-                    url: url,
-                    callback: callbackFun,
-                    data: data
-                });
-            }
+            self.ajaxCall(url, callbackFun, data);
         }, _timeoutDuration);
+    };
+
+    self.ajaxCall = function(url, callbackFun, data) {
+        var _req = new XMLHttpRequest(),
+            _params = '';
+        for (var _d in data) {
+            _params += (_d + '=' + data[_d]);
+        }
+        _req.open('GET', url + '?' + _params, true);
+        _req.onload = function() {
+            if (this.status >= 200 && this.status < 400) {
+                callbackFun(this.response);
+            }
+        };
+        _req.send();
     };
 
     self.cacheUrlContent = function(url, content) {
