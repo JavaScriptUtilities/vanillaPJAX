@@ -1,6 +1,6 @@
 /*
  * Plugin Name: Vanilla Pushstate/AJAX
- * Version: 0.18.0
+ * Version: 0.18.1
  * Plugin URL: https://github.com/Darklg/JavaScriptUtilities
  * JavaScriptUtilities PJAX may be freely distributed under the MIT license.
  * Required: Vanilla AJAX or jQuery,
@@ -57,10 +57,25 @@ var vanillaPJAX = function(settings) {
         },
     };
 
+    /* Config */
+    var _settings = {};
+    var _targetContainer = false;
+
     self.init = function(settings) {
-        self.getSettings(settings);
+
+        // Set default values
+        for (var attr in self.defaultSettings) {
+            _settings[attr] = self.defaultSettings[attr];
+        }
+        // Set custom values
+        for (var attr2 in settings) {
+            _settings[attr2] = settings[attr2];
+        }
+
+        _targetContainer = _settings.targetContainer;
+
         // Kill if target container isn't defined
-        if (!self.settings.targetContainer) {
+        if (!_targetContainer) {
             return;
         }
         // Set ARIA
@@ -70,7 +85,7 @@ var vanillaPJAX = function(settings) {
     };
 
     self.setARIA = function() {
-        var el = self.settings.targetContainer;
+        var el = _targetContainer;
         // User has requested a page change.
         el.setAttribute('aria-live', 'polite');
         // All the content has changed ( new page content )
@@ -79,7 +94,7 @@ var vanillaPJAX = function(settings) {
 
     self.setEvents = function() {
         // Click event on all A elements
-        self.setClickables(self.settings.parentContainer);
+        self.setClickables(_settings.parentContainer);
         // Handle history back
         window.addEventListener('popstate', function() {
             self.goToUrl(document.location.href);
@@ -93,7 +108,7 @@ var vanillaPJAX = function(settings) {
             if (typeof links[link] == 'object' && links[link].getAttribute('data-ajax') !== '1' && self.checkClickable(links[link])) {
                 links[link].setAttribute('data-ajax', '1');
                 links[link].addEventListener('click', self.clickAction, 1);
-                if (self.settings.useSessionStorage || self.settings.useLocalStorage) {
+                if (_settings.useSessionStorage || _settings.useLocalStorage) {
                     links[link].addEventListener('mouseover', self.hoverAction, 1);
                 }
             }
@@ -107,12 +122,12 @@ var vanillaPJAX = function(settings) {
         }
         // Static asset
         var urlExtension = link.pathname.split('.').pop().toLowerCase();
-        if (self.inArray(urlExtension, self.settings.urlExtensions)) {
+        if (self.inArray(urlExtension, _settings.urlExtensions)) {
             return false;
         }
         // URL Format
-        for (var i = 0, len = self.settings.invalidUrls.length; i < len; i++) {
-            if (!!link.href.match(self.settings.invalidUrls[i])) {
+        for (var i = 0, len = _settings.invalidUrls.length; i < len; i++) {
+            if (!!link.href.match(_settings.invalidUrls[i])) {
                 return false;
             }
         }
@@ -123,7 +138,7 @@ var vanillaPJAX = function(settings) {
         // Language link
         var linkLang = link.getAttribute('hreflang'),
             docLang = document.documentElement.lang;
-        if (linkLang && !self.contains(linkLang, docLang) && !self.contains(docLang, linkLang)) {
+        if (linkLang && linkLang.indexOf(docLang) < 0 && docLang.indexOf(linkLang) < 0) {
             return false;
         }
         // Disable PJAX
@@ -131,7 +146,7 @@ var vanillaPJAX = function(settings) {
             return false;
         }
         // Custom check
-        if (!self.settings.isClickable(link)) {
+        if (!_settings.isClickable(link)) {
             return false;
         }
         // Not on same domain
@@ -139,13 +154,6 @@ var vanillaPJAX = function(settings) {
             return false;
         }
         return true;
-    };
-
-    self.gotoHashBang = function() {
-        var link = document.location.hash;
-        if (link.slice(0, 2) == '#!') {
-            self.goToUrl(link.slice(2));
-        }
     };
 
     self.clickAction = function(e) {
@@ -156,12 +164,12 @@ var vanillaPJAX = function(settings) {
         self.goToUrl(this.href, this);
     };
 
-    self.hoverAction = function(e) {
+    self.hoverAction = function() {
         var url = this.href;
-        if (self.settings.useLocalStorage && localStorage.getItem(url)) {
+        if (_settings.useLocalStorage && localStorage.getItem(url)) {
             return;
         }
-        if (self.settings.useSessionStorage && sessionStorage.getItem(url)) {
+        if (_settings.useSessionStorage && sessionStorage.getItem(url)) {
             return;
         }
         self.callUrl(url, function(content) {
@@ -175,12 +183,11 @@ var vanillaPJAX = function(settings) {
         if (url == self.currentLocation || document.body.getAttribute('data-loading') == 'loading') {
             return;
         }
-        self.settings.callbackBeforeAJAX(url, item);
+        _settings.callbackBeforeAJAX(url, item);
         document.body.setAttribute('data-loading', 'loading');
-
         var callbackFun = function(content) {
             self.cacheUrlContent(url, content);
-            self.settings.callbackAfterAJAX(url, content);
+            _settings.callbackAfterAJAX(url, content);
 
             (function(settings, url, content) {
                 /* Load */
@@ -197,7 +204,7 @@ var vanillaPJAX = function(settings) {
                     /* - After load */
                 }, _timeoutDuration);
                 /* - Load */
-            }(self.settings, url, content));
+            }(_settings, url, content));
 
         };
         self.callUrl(url, callbackFun);
@@ -205,14 +212,14 @@ var vanillaPJAX = function(settings) {
 
     self.callUrl = function(url, callbackFun) {
         var data = {};
-        data[self.settings.ajaxParam] = 1;
-        var _timeoutDuration = self.settings.callbackTimeoutBeforeAJAX(self.settings.timeoutBeforeAJAX, url, data);
+        data[_settings.ajaxParam] = 1;
+        var _timeoutDuration = _settings.callbackTimeoutBeforeAJAX(_settings.timeoutBeforeAJAX, url, data);
         setTimeout(function() {
-            if (self.settings.useLocalStorage && localStorage.getItem(url)) {
+            if (_settings.useLocalStorage && localStorage.getItem(url)) {
                 callbackFun(localStorage.getItem(url));
                 return;
             }
-            if (self.settings.useSessionStorage && sessionStorage.getItem(url)) {
+            if (_settings.useSessionStorage && sessionStorage.getItem(url)) {
                 callbackFun(sessionStorage.getItem(url));
                 return;
             }
@@ -228,18 +235,18 @@ var vanillaPJAX = function(settings) {
         }
         _req.open('GET', url + '?' + _params, true);
         _req.onload = function() {
-            if (this.status >= 200 && this.status < 400) {
-                callbackFun(this.response);
+            if (_req.status >= 200 && _req.status < 400) {
+                callbackFun(_req.response);
             }
         };
         _req.send();
     };
 
     self.cacheUrlContent = function(url, content) {
-        if (self.settings.useLocalStorage) {
+        if (_settings.useLocalStorage) {
             localStorage.setItem(url, content);
         }
-        if (self.settings.useSessionStorage) {
+        if (_settings.useSessionStorage) {
             sessionStorage.setItem(url, content);
         }
     };
@@ -269,34 +276,19 @@ var vanillaPJAX = function(settings) {
 
     // Handle the loaded content
     self.loadContent = function(url, content) {
-        var settings = self.settings,
-            target = settings.targetContainer;
-        content = settings.filterContent(content);
+        content = _settings.filterContent(content);
         // Update values
         self.currentLocation = url;
         // Set URL
         self.setUrl(url);
         // Load content into target
-        target.innerHTML = content;
+        _targetContainer.innerHTML = content;
         // Add events to new links
-        self.setClickables(target);
+        self.setClickables(_targetContainer);
     };
 
     self.init(settings);
     return self;
-};
-
-/* Get Settings */
-vanillaPJAX.prototype.getSettings = function(settings) {
-    this.settings = {};
-    // Set default values
-    for (var attr in this.defaultSettings) {
-        this.settings[attr] = this.defaultSettings[attr];
-    }
-    // Set new values
-    for (var attr2 in settings) {
-        this.settings[attr2] = settings[attr2];
-    }
 };
 
 /* inArray */
@@ -308,9 +300,4 @@ vanillaPJAX.prototype.inArray = function(needle, haystack) {
         if (haystack[i] === needle) return true;
     }
     return false;
-};
-
-/* Contains */
-vanillaPJAX.prototype.contains = function(needle, haystack) {
-    return haystack.indexOf(needle) != -1;
 };

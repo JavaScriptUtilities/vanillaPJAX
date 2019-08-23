@@ -13,7 +13,8 @@ if (isset($_GET['is_ajax'])) {
 </small>
 </p>
 <p>
-    <a href="https://github.com/JavaScriptUtilities/vanillaPJAX" target="_blank">This external link</a> is ignored.
+    <a href="https://github.com/JavaScriptUtilities/vanillaPJAX" target="_blank">This external link</a> is ignored.<br />
+    <a href="images/banana.gif" target="_blank">This link to an image</a> is ignored.
 </p>
 </body>
 </html>
