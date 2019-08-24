@@ -1,6 +1,6 @@
 /*
  * Plugin Name: Vanilla Pushstate/AJAX
- * Version: 0.18.1
+ * Version: 0.18.2
  * Plugin URL: https://github.com/Darklg/JavaScriptUtilities
  * JavaScriptUtilities PJAX may be freely distributed under the MIT license.
  * Required: Vanilla AJAX or jQuery,
@@ -22,7 +22,7 @@ var vanillaPJAX = function(settings) {
 
     self.isLoading = false;
     self.currentLocation = document.location;
-    self.defaultSettings = {
+    var _defaultSettings = {
         ajaxParam: 'ajax',
         invalidUrls: [/wp-admin/],
         targetContainer: document.body,
@@ -48,7 +48,10 @@ var vanillaPJAX = function(settings) {
             // Allow a new page load
             document.body.setAttribute('data-loading', '');
         },
-        callbackAfterLoad: function(newUrl, content) {},
+        callbackAfterLoad: function(newUrl, content) {
+            // Change page title
+            // document.title = 'My new title';
+        },
         filterContent: function(content) {
             return content;
         },
@@ -60,12 +63,14 @@ var vanillaPJAX = function(settings) {
     /* Config */
     var _settings = {};
     var _targetContainer = false;
+    var _useLocalStorage = false;
+    var _useSessionStorage = false;
 
     self.init = function(settings) {
 
         // Set default values
-        for (var attr in self.defaultSettings) {
-            _settings[attr] = self.defaultSettings[attr];
+        for (var attr in _defaultSettings) {
+            _settings[attr] = _defaultSettings[attr];
         }
         // Set custom values
         for (var attr2 in settings) {
@@ -73,6 +78,8 @@ var vanillaPJAX = function(settings) {
         }
 
         _targetContainer = _settings.targetContainer;
+        _useLocalStorage = _settings.useLocalStorage;
+        _useSessionStorage = _settings.useSessionStorage;
 
         // Kill if target container isn't defined
         if (!_targetContainer) {
@@ -108,7 +115,7 @@ var vanillaPJAX = function(settings) {
             if (typeof links[link] == 'object' && links[link].getAttribute('data-ajax') !== '1' && self.checkClickable(links[link])) {
                 links[link].setAttribute('data-ajax', '1');
                 links[link].addEventListener('click', self.clickAction, 1);
-                if (_settings.useSessionStorage || _settings.useLocalStorage) {
+                if (_useSessionStorage || _useLocalStorage) {
                     links[link].addEventListener('mouseover', self.hoverAction, 1);
                 }
             }
@@ -166,10 +173,10 @@ var vanillaPJAX = function(settings) {
 
     self.hoverAction = function() {
         var url = this.href;
-        if (_settings.useLocalStorage && localStorage.getItem(url)) {
+        if (_useLocalStorage && localStorage.getItem(url)) {
             return;
         }
-        if (_settings.useSessionStorage && sessionStorage.getItem(url)) {
+        if (_useSessionStorage && sessionStorage.getItem(url)) {
             return;
         }
         self.callUrl(url, function(content) {
@@ -191,18 +198,18 @@ var vanillaPJAX = function(settings) {
 
             (function(settings, url, content) {
                 /* Load */
-                var _timeoutDuration = settings.callbackTimeoutBeforeLoadContent(settings.timeoutBeforeLoadContent, url, content);
+                var _timeoutDurationBeforeLoadContent = settings.callbackTimeoutBeforeLoadContent(settings.timeoutBeforeLoadContent, url, content);
+                var _timeoutDurationBeforeLoading = settings.callbackTimeoutBeforeLoad(settings.timeoutBeforeLoading, url, content);
                 setTimeout(function() {
                     self.loadContent(url, content);
                     /* After load */
-                    var _timeoutDuration = settings.callbackTimeoutBeforeLoad(settings.timeoutBeforeLoading, url, content);
                     setTimeout(function() {
                         settings.callbackAllowLoading(url, content);
                         settings.callbackAfterLoad(url, content);
-                        self.triggerEvent('vanilla-pjax-ready');
-                    }, _timeoutDuration);
+                        window.dispatchEvent(new Event('vanilla-pjax-ready'));
+                    }, _timeoutDurationBeforeLoading);
                     /* - After load */
-                }, _timeoutDuration);
+                }, _timeoutDurationBeforeLoadContent);
                 /* - Load */
             }(_settings, url, content));
 
@@ -215,11 +222,11 @@ var vanillaPJAX = function(settings) {
         data[_settings.ajaxParam] = 1;
         var _timeoutDuration = _settings.callbackTimeoutBeforeAJAX(_settings.timeoutBeforeAJAX, url, data);
         setTimeout(function() {
-            if (_settings.useLocalStorage && localStorage.getItem(url)) {
+            if (_useLocalStorage && localStorage.getItem(url)) {
                 callbackFun(localStorage.getItem(url));
                 return;
             }
-            if (_settings.useSessionStorage && sessionStorage.getItem(url)) {
+            if (_useSessionStorage && sessionStorage.getItem(url)) {
                 callbackFun(sessionStorage.getItem(url));
                 return;
             }
@@ -243,24 +250,12 @@ var vanillaPJAX = function(settings) {
     };
 
     self.cacheUrlContent = function(url, content) {
-        if (_settings.useLocalStorage) {
+        if (_useLocalStorage) {
             localStorage.setItem(url, content);
         }
-        if (_settings.useSessionStorage) {
+        if (_useSessionStorage) {
             sessionStorage.setItem(url, content);
         }
-    };
-
-    self.triggerEvent = function(eventId) {
-        var event;
-        if (typeof(Event) === 'function') {
-            event = new Event(eventId);
-        }
-        else {
-            event = document.createEvent('Event');
-            event.initEvent(eventId, true, true);
-        }
-        window.dispatchEvent(event);
     };
 
     // Change URL
