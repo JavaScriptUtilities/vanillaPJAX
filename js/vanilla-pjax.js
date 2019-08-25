@@ -1,6 +1,6 @@
 /*
  * Plugin Name: Vanilla Pushstate/AJAX
- * Version: 0.18.2
+ * Version: 0.18.3
  * Plugin URL: https://github.com/Darklg/JavaScriptUtilities
  * JavaScriptUtilities PJAX may be freely distributed under the MIT license.
  * Required: Vanilla AJAX or jQuery,
@@ -52,6 +52,9 @@ var vanillaPJAX = function(settings) {
             // Change page title
             // document.title = 'My new title';
         },
+        filterData: function(data, url) {
+            return data;
+        },
         filterContent: function(content) {
             return content;
         },
@@ -68,6 +71,7 @@ var vanillaPJAX = function(settings) {
 
     self.init = function(settings) {
 
+        /* Settings */
         // Set default values
         for (var attr in _defaultSettings) {
             _settings[attr] = _defaultSettings[attr];
@@ -77,6 +81,7 @@ var vanillaPJAX = function(settings) {
             _settings[attr2] = settings[attr2];
         }
 
+        /* Save main settings */
         _targetContainer = _settings.targetContainer;
         _useLocalStorage = _settings.useLocalStorage;
         _useSessionStorage = _settings.useSessionStorage;
@@ -85,21 +90,14 @@ var vanillaPJAX = function(settings) {
         if (!_targetContainer) {
             return;
         }
-        // Set ARIA
-        self.setARIA();
-        // Set Events
-        self.setEvents();
-    };
 
-    self.setARIA = function() {
-        var el = _targetContainer;
+        /* Set ARIA */
         // User has requested a page change.
-        el.setAttribute('aria-live', 'polite');
+        _targetContainer.setAttribute('aria-live', 'polite');
         // All the content has changed ( new page content )
-        el.setAttribute('aria-atomic', 'true');
-    };
+        _targetContainer.setAttribute('aria-atomic', 'true');
 
-    self.setEvents = function() {
+        /* Set Events */
         // Click event on all A elements
         self.setClickables(_settings.parentContainer);
         // Handle history back
@@ -220,6 +218,7 @@ var vanillaPJAX = function(settings) {
     self.callUrl = function(url, callbackFun) {
         var data = {};
         data[_settings.ajaxParam] = 1;
+        data = self.filterData(data, url);
         var _timeoutDuration = _settings.callbackTimeoutBeforeAJAX(_settings.timeoutBeforeAJAX, url, data);
         setTimeout(function() {
             if (_useLocalStorage && localStorage.getItem(url)) {
@@ -235,18 +234,18 @@ var vanillaPJAX = function(settings) {
     };
 
     self.ajaxCall = function(url, callbackFun, data) {
-        var _req = new XMLHttpRequest(),
+        var _xhr = new XMLHttpRequest(),
             _params = '';
         for (var _d in data) {
-            _params += (_d + '=' + data[_d]);
+            _params += (_d + '=' + encodeURIComponent(data[_d]));
         }
-        _req.open('GET', url + '?' + _params, true);
-        _req.onload = function() {
-            if (_req.status >= 200 && _req.status < 400) {
-                callbackFun(_req.response);
+        _xhr.open('GET', url + '?' + _params, true);
+        _xhr.onload = function() {
+            if (_xhr.status >= 200 && _xhr.status < 400) {
+                callbackFun(_xhr.response);
             }
         };
-        _req.send();
+        _xhr.send();
     };
 
     self.cacheUrlContent = function(url, content) {
