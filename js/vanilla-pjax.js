@@ -1,6 +1,6 @@
 /*
  * Plugin Name: Vanilla Pushstate/AJAX
- * Version: 0.19.0
+ * Version: 0.20.0
  * Plugin URL: https://github.com/Darklg/JavaScriptUtilities
  * JavaScriptUtilities PJAX may be freely distributed under the MIT license.
  * Required: Vanilla AJAX or jQuery,
@@ -122,7 +122,7 @@ var vanillaPJAX = function(settings) {
 
     self.checkClickable = function(link) {
         // Invalid or external link
-        if (!link.href || link.href.slice(-1) == '#' || link.getAttribute('target') == '_blank') {
+        if (!link.href || link.href.slice(-1) == '#' || link.getAttribute('href').slice(-1) == '#' || link.getAttribute('target') == '_blank') {
             return false;
         }
         // Static asset
@@ -162,7 +162,7 @@ var vanillaPJAX = function(settings) {
     };
 
     self.clickAction = function(e) {
-        if (e.metaKey || e.ctrlKey ||  e.altKey || e.shiftKey) {
+        if (e.metaKey || e.ctrlKey || e.altKey || e.shiftKey) {
             return;
         }
         e.preventDefault();
@@ -184,7 +184,7 @@ var vanillaPJAX = function(settings) {
 
     // Load an URL
     self.goToUrl = function(url, item) {
-        item = item ||  false;
+        item = item || false;
         if (url == self.currentLocation || document.body.getAttribute('data-loading') == 'loading') {
             return;
         }
