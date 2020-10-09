@@ -1,6 +1,6 @@
 /*
  * Plugin Name: Vanilla Pushstate/AJAX
- * Version: 0.20.0
+ * Version: 0.20.1
  * Plugin URL: https://github.com/Darklg/JavaScriptUtilities
  * JavaScriptUtilities PJAX may be freely distributed under the MIT license.
  * Required: Vanilla AJAX or jQuery,
@@ -122,7 +122,7 @@ var vanillaPJAX = function(settings) {
 
     self.checkClickable = function(link) {
         // Invalid or external link
-        if (!link.href || link.href.slice(-1) == '#' || link.getAttribute('href').slice(-1) == '#' || link.getAttribute('target') == '_blank') {
+        if (!link.href || link.href.charAt(0) == '#' || link.getAttribute('href').charAt(0) == '#' || link.getAttribute('target') == '_blank') {
             return false;
         }
         // Static asset
