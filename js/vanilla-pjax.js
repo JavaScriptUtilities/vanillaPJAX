@@ -1,6 +1,6 @@
 /*
  * Plugin Name: Vanilla Pushstate/AJAX
- * Version: 0.20.1
+ * Version: 0.20.2
  * Plugin URL: https://github.com/Darklg/JavaScriptUtilities
  * JavaScriptUtilities PJAX may be freely distributed under the MIT license.
  * Required: Vanilla AJAX or jQuery,
@@ -103,6 +103,10 @@ var vanillaPJAX = function(settings) {
         // Handle history back
         window.addEventListener('popstate', function() {
             self.goToUrl(document.location.href);
+        }, 1);
+        // Handle content refresh
+        window.addEventListener('vanilla-pjax-refresh', function() {
+            self.setClickables(_targetContainer);
         }, 1);
     };
 
